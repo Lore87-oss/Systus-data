@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Webmap Systus Data</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- Papa Parse per leggere CSV -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+<style>
+  #map {
+    height: 95vh;
+    width: 100%;
+  }
+</style>
+</head>
+
+<body>
+<h3 style="text-align:center; font-family:sans-serif;">Webmap Systus – CSV live</h3>
+<div id="map"></div>
+
+<script>
+// Inizializza la mappa
+var map = L.map('map').setView([41.90, 12.50], 10);
+
+// Aggiunge sfondo
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19,
+}).addTo(map);
+
+// Funzione per convertire un CSV in punti sulla mappa
+function loadCSV(url, color) {
+  Papa.parse(url, {
+    download: true,
+    header: true,
+    complete: function(results) {
+      results.data.forEach(function(row) {
+        if (row.lat && row.lon) {
+          L.circleMarker([row.lat, row.lon], {
+            radius: 6,
+            color: color,
+            fillColor: color,
+            fillOpacity: 0.8
+          }).addTo(map)
+          .bindPopup("<b>" + (row.nome || "Elemento") + "</b><br>ID: " + row.id);
+        }
+      });
+    }
+  });
+}
+
+// CARICA CSV dagli URL RAW di GitHub
+loadCSV("https://raw.githubusercontent.com/Lore87-oss/Systus-data/main/FB_Nuovo%20Albero_28_11_2025%20(2).csv", "green");
+loadCSV("https://raw.githubusercontent.com/Lore87-oss/Systus-data/main/Aree_verdi_28_11_2025_105715.csv", "blue");
+
+</script>
+</body>
+</html>
