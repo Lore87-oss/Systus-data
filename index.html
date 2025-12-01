@@ -1,86 +1,44 @@
-<!DOCTYPE html>
-<html lang="it">
-<head>
-<meta charset="utf-8" />
-<title>Webmap Systus – CSV live</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<!-- Leaflet CSS -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
-<style>
-  #map { height: 100vh; }
-</style>
-
-</head>
-<body>
-<h2 style="text-align:center;">Webmap Systus – CSV live</h2>
-
-<div id="map"></div>
-
-<!-- Leaflet JS -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-<!-- Libreria per convertire WKT ➜ GeoJSON -->
-<script src="https://unpkg.com/wellknown/wellknown.min.js"></script>
-
-<script>
-
-// CREA MAPPA
-var map = L.map("map").setView([41.90, 12.50], 12);
-
-// BASEMAP
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  maxZoom: 22
-}).addTo(map);
-
 /* ===========================
-   CARICA CSV AREE VERDI
+   CARICA AREE VERDI (WKT POLYGONS)
    =========================== */
 
 fetch("https://lore87-oss.github.io/Systus-data/Aree_verdi_28_11_2025_105715.csv")
   .then(response => response.text())
   .then(text => {
 
-    // PARSE CSV
-    const rows = text.split("\n").map(r => r.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/));
+    // PRENDE LA PRIMA E UNICA RIGA DEL CSV
+    const header = text.split("\n")[0].split(",");
+    const data = text.split("\n")[1]; 
 
-    const header = rows[0];
+    // Trovo gli indici delle colonne
     const idxNome = header.indexOf("Nome");
     const idxIndirizzo = header.indexOf("Indirizzo");
     const idxWKT = header.indexOf("WKT");
 
-    for (let i = 1; i < rows.length; i++) {
-      const row = rows[i];
-      if (!row[idxWKT]) continue;
+    // Split robusto: separa solo le virgole fuori dalle virgolette
+    let parts = data.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
 
-      // Rimuove eventuali virgolette
-      const wkt = row[idxWKT].replace(/"/g,"");
+    // Pulizia virgolette
+    parts = parts.map(v => v.replace(/^"|"$/g, ''));
 
-      try {
-        // CONVERSIONE WKT → GEOJSON
-        const geom = wellknown(wkt);
+    // Ottengo il WKT
+    const wkt = parts[idxWKT];
+    const nome = parts[idxNome];
+    const indirizzo = parts[idxIndirizzo];
 
-        // AGGIUNTA POLIGONO IN MAPPA
-        L.geoJSON(geom, {
-          style: {
-            color: "green",
-            fillColor: "lightgreen",
-            weight: 2,
-            fillOpacity: 0.4
-          }
-        })
-        .bindPopup(`<b>${row[idxNome]}</b><br>${row[idxIndirizzo]}`)
-        .addTo(map);
+    // Converto WKT ➜ GeoJSON
+    const geom = wellknown(wkt);
 
-      } catch (err) {
-        console.error("Errore WKT:", wkt, err);
+    // Disegno il poligono
+    L.geoJSON(geom, {
+      style: {
+        color: "green",
+        fillColor: "lightgreen",
+        weight: 2,
+        fillOpacity: 0.4
       }
-    }
+    })
+    .bindPopup(`<b>${nome}</b><br>${indirizzo}`)
+    .addTo(map);
 
   });
-
-</script>
-
-</body>
-</html>
