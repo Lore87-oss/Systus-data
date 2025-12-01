@@ -1,35 +1,33 @@
-/* ===========================
-   CARICA AREE VERDI (WKT POLYGONS)
-   =========================== */
+
 
 fetch("https://lore87-oss.github.io/Systus-data/Aree_verdi_28_11_2025_105715.csv")
   .then(response => response.text())
   .then(text => {
 
-    // PRENDE LA PRIMA E UNICA RIGA DEL CSV
+   
     const header = text.split("\n")[0].split(",");
     const data = text.split("\n")[1]; 
 
-    // Trovo gli indici delle colonne
+  
     const idxNome = header.indexOf("Nome");
     const idxIndirizzo = header.indexOf("Indirizzo");
     const idxWKT = header.indexOf("WKT");
 
-    // Split robusto: separa solo le virgole fuori dalle virgolette
+    
     let parts = data.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
 
-    // Pulizia virgolette
+   
     parts = parts.map(v => v.replace(/^"|"$/g, ''));
 
-    // Ottengo il WKT
+   
     const wkt = parts[idxWKT];
     const nome = parts[idxNome];
     const indirizzo = parts[idxIndirizzo];
 
-    // Converto WKT ➜ GeoJSON
+   
     const geom = wellknown(wkt);
 
-    // Disegno il poligono
+  
     L.geoJSON(geom, {
       style: {
         color: "green",
