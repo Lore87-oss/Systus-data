@@ -1,88 +1,86 @@
 <!DOCTYPE html>
-<html>
+<html lang="it">
 <head>
-    <meta charset="utf-8" />
-    <title>Webmap Systus – CSV Live</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<meta charset="utf-8" />
+<title>Webmap Systus – CSV live</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <style>
-        body { margin:0; padding:0; }
-        #map { width:100%; height:100vh; }
-    </style>
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<style>
+  #map { height: 100vh; }
+</style>
+
 </head>
 <body>
-
 <h2 style="text-align:center;">Webmap Systus – CSV live</h2>
+
 <div id="map"></div>
 
-<script>
-// --- CREA MAPPA ---
-const map = L.map('map').setView([41.9028, 12.4964], 11);
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-// --- SFONDO MAPPA ---
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19
+<!-- Libreria per convertire WKT ➜ GeoJSON -->
+<script src="https://unpkg.com/wellknown/wellknown.min.js"></script>
+
+<script>
+
+// CREA MAPPA
+var map = L.map("map").setView([41.90, 12.50], 12);
+
+// BASEMAP
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  maxZoom: 22
 }).addTo(map);
 
-// --- URL CSV su GitHub ---
-const alberiCSV = "https://raw.githubusercontent.com/Lore87-oss/Systus-data/main/FB_Nuovo%20Albero_28_11_2025%20(2).csv";
-const areeCSV = "https://raw.githubusercontent.com/Lore87-oss/Systus-data/main/Aree_verdi_28_11_2025_105715.csv";
+/* ===========================
+   CARICA CSV AREE VERDI
+   =========================== */
 
+fetch("https://lore87-oss.github.io/Systus-data/Aree_verdi_28_11_2025_105715.csv")
+  .then(response => response.text())
+  .then(text => {
 
-// --- FUNZIONE PER CARICARE CSV ---
-function loadCSV(url, callback) {
-    Papa.parse(url, {
-        download: true,
-        header: true,
-        dynamicTyping: true,
-        complete: callback
-    });
-}
+    // PARSE CSV
+    const rows = text.split("\n").map(r => r.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/));
 
+    const header = rows[0];
+    const idxNome = header.indexOf("Nome");
+    const idxIndirizzo = header.indexOf("Indirizzo");
+    const idxWKT = header.indexOf("WKT");
 
-// --- 1️⃣ CARICA ALBERI ---
-loadCSV(alberiCSV, function(result) {
-    result.data.forEach(row => {
-        if (!row.Latitudine || !row.Longitudine) return;
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row[idxWKT]) continue;
 
-        L.circleMarker([row.Latitudine, row.Longitudine], {
-            radius: 5,
-            color: "red",
-            fillColor: "red",
-            fillOpacity: 0.7
-        })
-        .bindPopup(`
-            <b>Albero</b><br>
-            Specie: ${row.Specie || "N/D"}<br>
-            ID: ${row.ID || "N/D"}
-        `)
-        .addTo(map);
-    });
-});
+      // Rimuove eventuali virgolette
+      const wkt = row[idxWKT].replace(/"/g,"");
 
+      try {
+        // CONVERSIONE WKT → GEOJSON
+        const geom = wellknown(wkt);
 
-// --- 2️⃣ CARICA AREE VERDI ---
-loadCSV(areeCSV, function(result) {
-    result.data.forEach(row => {
-        if (!row.lat || !row.lon) return;
-
-        // caso aree come punti
-        L.circleMarker([row.lat, row.lon], {
-            radius: 7,
+        // AGGIUNTA POLIGONO IN MAPPA
+        L.geoJSON(geom, {
+          style: {
             color: "green",
-            fillColor: "green",
-            fillOpacity: 0.5
+            fillColor: "lightgreen",
+            weight: 2,
+            fillOpacity: 0.4
+          }
         })
-        .bindPopup(`
-            <b>Area verde</b><br>
-            Nome: ${row.Nome || "N/D"}
-        `)
+        .bindPopup(`<b>${row[idxNome]}</b><br>${row[idxIndirizzo]}`)
         .addTo(map);
-    });
-});
+
+      } catch (err) {
+        console.error("Errore WKT:", wkt, err);
+      }
+    }
+
+  });
 
 </script>
+
 </body>
 </html>
