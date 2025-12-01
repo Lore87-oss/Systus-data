@@ -1,38 +1,56 @@
-Papa.parse("https://lore87-oss.github.io/Systus-data/FB_Nuovo_Albero.csv", {
-    download: true,
-    header: true,
-    complete: function(results) {
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<title>Webmap Systus – CSV live</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-        console.log("CSV CARICATO:", results.data); // DEBUG
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
-        results.data.forEach(row => {
+<style>
+  #map { height: 100vh; }
+</style>
 
-            // Controllo se ci sono coordinate
-            if (!row.CenterLat || !row.CenterLng) {
-                console.log("RIGA SENZA COORDINATE:", row);
-                return;
+</head>
+<body>
+<h2 style="text-align:center;">Webmap Systus – CSV live</h2>
+
+<div id="map"></div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- Libreria per convertire WKT ➜ GeoJSON -->
+<script src="https://unpkg.com/wellknown/wellknown.min.js"></script>
+
+<script>
+
+// CREA MAPPA
+var map = L.map("map").setView([41.90, 12.50], 12);
+
+// BASEMAP
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  maxZoom: 22
+}).addTo(map);
+
+/* ===========================
+   // 1) CARICO AREE VERDI GEOJSON
+// =========================
+fetch("https://lore87-oss.github.io/Systus-data/Aree_verdi.geojson")
+    .then(r => r.json())
+    .then(geojson => {
+        L.geoJSON(geojson, {
+            style: {
+                color: "green",
+                weight: 2,
+                fillColor: "lightgreen",
+                fillOpacity: 0.4
+            },
+            onEachFeature: (f, layer) => {
+                const nome = f.properties.Nome || "Area verde";
+                const indirizzo = f.properties.Indirizzo || "";
+                layer.bindPopup(`<b>${nome}</b><br>${indirizzo}`);
             }
-
-            let lat = parseFloat(row.CenterLat);
-            let lng = parseFloat(row.CenterLng);
-
-            if (isNaN(lat) || isNaN(lng)) {
-                console.log("COORDINATE NON VALIDE:", row.CenterLat, row.CenterLng);
-                return;
-            }
-
-            L.circleMarker([lat, lng], {
-                radius: 6,
-                color: "red",
-                fillColor: "red",
-                fillOpacity: 1
-            })
-            .bindPopup(`
-                <b>Albero</b><br>
-                Specie: ${row.Specie || "N/D"}<br>
-                ID: ${row.ID || "N/D"}
-            `)
-            .addTo(map);
-        });
-    }
-});
+        }).addTo(map);
+    });
