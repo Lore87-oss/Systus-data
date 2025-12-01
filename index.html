@@ -56,6 +56,44 @@ fetch("https://lore87-oss.github.io/Systus-data/Aree_verdi.geojson")
             }
         }).addTo(map);
     });
+/* ===========================
+   2) CARICO ALBERI DA CSV
+=========================== */
+
+fetch("https://lore87-oss.github.io/Systus-data/FB_Nuovo_Albero.csv")
+  .then(r => r.text())
+  .then(text => {
+
+    const rows = text.trim().split("\n");
+    const header = rows[0].split(",");
+
+    const idxLat = header.indexOf("LAT") >= 0 ? header.indexOf("LAT") : header.indexOf("lat");
+    const idxLon = header.indexOf("LON") >= 0 ? header.indexOf("LON") : header.indexOf("lon");
+    const idxSpecie = header.indexOf("SPECIE");
+    const idxID = header.indexOf("OBJ_ID");
+
+    for (let i = 1; i < rows.length; i++) {
+      const cols = rows[i].split(",");
+
+      const lat = parseFloat(cols[idxLat]);
+      const lon = parseFloat(cols[idxLon]);
+
+      if (!lat || !lon || isNaN(lat) || isNaN(lon)) continue;
+
+      const specie = cols[idxSpecie] || "Specie non indicata";
+      const objId = cols[idxID] || "ID non disponibile";
+
+      L.circleMarker([lat, lon], {
+        radius: 6,
+        color: "blue",
+        fillColor: "#00aaff",
+        fillOpacity: 0.9
+      })
+      .bindPopup(`<b>Albero ${objId}</b><br>Specie: ${specie}`)
+      .addTo(map);
+    }
+
+  });
 
 </script>
 
