@@ -1,107 +1,27 @@
-<!DOCTYPE html>
-<html lang="it">
-<head>
-<meta charset="utf-8" />
-<title>Webmap Systus – CSV + GeoJSON live</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<!-- Leaflet CSS -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
-<style>
-    body { margin:0; padding:0; }
-    #map { width: 100vw; height: 100vh; }
-    h1 { text-align:center; font-family: Georgia, serif; margin-top:10px; }
-</style>
-</head>
-
-<body>
-
-<h1>Webmap Systus – CSV & Aree Verdi</h1>
-<div id="map"></div>
-
-<!-- Leaflet JS -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-<script>
-// Init mappa centrata su Roma
-var map = L.map('map').setView([41.90, 12.50], 12);
-
-// Base map OSM
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '&copy; OpenStreetMap'
-}).addTo(map);
-
-// ------------------------------
-// 1) CARICAMENTO ALBERI (CSV)
-// ------------------------------
-fetch("https://lore87-oss.github.io/Systus-data/FB_Nuovo_Albero_28_11_2025%20(2).csv")
-  .then(resp => resp.text())
-  .then(csvText => {
-    const rows = csvText.split("\n").slice(1); // salta intestazione
-
-    rows.forEach(r => {
-      const cols = r.split(",");
-
-      if (cols.length < 6) return;
-
-      let lat = parseFloat(cols[4]);
-      let lng = parseFloat(cols[5]);
-      let specie = cols[2] || "Specie non indicata";
-      let idalbero = cols[0] || "N/D";
-
-      if (!isNaN(lat) && !isNaN(lng)) {
-        L.circleMarker([lat, lng], {
-          radius: 6,
-          color: "red",
-          fillColor: "red",
-          fillOpacity: 0.8
-        }).addTo(map)
-        .bindPopup(`
-            <b>Albero</b><br>
-            Specie: ${specie}<br>
-            ID: ${idalbero}
-        `);
-      }
-    });
-  });
-
-// ------------------------------
-// 2) CARICAMENTO AREE VERDI (GeoJSON)
-// ------------------------------
+// ------- AREE VERDI (GeoJSON) ----------
 fetch("https://lore87-oss.github.io/Systus-data/Aree_verdi.geojson")
-  .then(resp => resp.json())
+  .then(response => response.json())
   .then(data => {
+
     L.geoJSON(data, {
       style: {
         color: "green",
         weight: 2,
-        fillColor: "green",
+        fillColor: "lightgreen",
         fillOpacity: 0.25
       },
       onEachFeature: function (feature, layer) {
 
-        const p = feature.properties || {};
-
-        let nome = p.Nome || "Area verde";
-        let stato = p.Stato_Manutentivo || "N/D";
-        let tipologia = p.Tipologia_Gestione || "N/D";
-        let indirizzo = p.Indirizzo || "";
-        let alberi = p.Alberi || "N/D";
+        const p = feature.properties;
 
         layer.bindPopup(`
-            <b>${nome}</b><br>
-            Indirizzo: ${indirizzo}<br>
-            Stato: ${stato}<br>
-            Gestione: ${tipologia}<br>
-            Alberi censiti: ${alberi}
+          <b>${p.Nome || "Area verde"}</b><br>
+          Indirizzo: ${p.Indirizzo || "N/D"}<br>
+          Tipologia gestione: ${p.Tipologia_Gestione || "N/D"}<br>
+          Stato manutentivo: ${p.Stato_Manutentivo || "N/D"}<br>
+          Alberi: ${p.Alberi || "N/D"}
         `);
       }
     }).addTo(map);
+
   });
-
-</script>
-
-</body>
-</html>
